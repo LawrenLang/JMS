@@ -16,7 +16,7 @@ public class Application {
 
         String msg, dst;
         while(true) {
-            System.out.println("请输入目的地：");
+            System.out.println("请输入目的地：\n(群发为\"all\")");
             dst = scanner.nextLine();
             System.out.println("请输入内容：");
             msg = scanner.nextLine();
@@ -51,6 +51,25 @@ public class Application {
                 }
             }
         });
+
+        /*群发消息接收*/
+        Session topicSession=connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        //创建目的地
+        Destination topicDestination = session.createTopic("default-topic");
+        //创建消费者对象，指定目的地
+        MessageConsumer topicMessageConsumer = session.createConsumer(topicDestination);
+        //接收消息
+        topicMessageConsumer.setMessageListener(new MessageListener(){
+            public void onMessage(Message arg0) {
+                System.out.print(">>[all]");
+                TextMessage message=(TextMessage) arg0;
+                try {
+                    System.out.println(message.getText());
+                } catch (Exception e) {
+                }
+            }
+        });
+
     }
 
 
@@ -67,8 +86,15 @@ public class Application {
             session = connection.createSession(Boolean.FALSE, Session.AUTO_ACKNOWLEDGE);
             //4. 有了session之后，就可以创建消息，目的地，生产者和消费者
             Message message = session.createTextMessage(text);
-            //目的地
-            Destination destination = session.createQueue(DESTINATION);
+            Destination destination;
+            switch (DESTINATION) {
+                case "all":
+                    destination = session.createTopic("default-topic");
+                    break;
+                default:
+                    destination = session.createQueue(DESTINATION);
+                    break;
+            }
             //生产者
             messageProducer = session.createProducer(destination);
             //发消息 没有返回值，是非阻塞的
