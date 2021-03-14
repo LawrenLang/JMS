@@ -5,11 +5,14 @@ import java.util.Scanner;
 public class Application {
     public static final String BROKER_URL = "tcp://127.0.0.1:61616";
     public static Scanner scanner = new Scanner(System.in);
+    public static String appName;
     //相当于一个数据库（其实是一个队列）
     public static void main(String[] args) throws JMSException {
 
         System.out.println("请输入本地名称：");
-        Application app=new Application(scanner.nextLine());
+        appName=scanner.nextLine();
+        String prefix="From "+appName+": ";
+        Application app=new Application(appName);
 
         String msg, dst;
         while(true) {
@@ -17,7 +20,7 @@ public class Application {
             dst = scanner.nextLine();
             System.out.println("请输入内容：");
             msg = scanner.nextLine();
-            sendMessage(dst,msg);
+            sendMessage(dst,prefix+msg);
             System.out.println("内容已发送！");
         }
 
@@ -40,7 +43,7 @@ public class Application {
         MessageConsumer messageConsumer = session.createConsumer(destination);
         messageConsumer.setMessageListener(new MessageListener(){
             public void onMessage(Message arg0) {
-                System.out.print("接受消息：");
+                System.out.print(">>");
                 TextMessage message=(TextMessage) arg0;
                 try {
                     System.out.println(message.getText());
