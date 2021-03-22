@@ -66,13 +66,67 @@ public class Application {
         Destination destination = session.createQueue(name);
         //消费者
         MessageConsumer messageConsumer = session.createConsumer(destination);
+        Session finalSession = session;
         messageConsumer.setMessageListener(new MessageListener(){
-            public void onMessage(Message arg0) {
+            public void onMessage(Message message) {
+                //System.out.println("接收群发");
                 System.out.print(">>");
-                TextMessage message=(TextMessage) arg0;
-                try {
-                    System.out.println(message.getText());
-                } catch (Exception e) {
+
+                if(message instanceof TextMessage) {
+
+                    TextMessage Tmessage=(TextMessage) message;
+                    try {
+                        System.out.println(Tmessage.getText());
+                    } catch (Exception e) {
+                    }
+                } else if(message instanceof BytesMessage) {
+                    BytesMessage bytesMessage = (BytesMessage) message;
+                    try {
+                        System.out.println("收到来自[" + message.getJMSDestination().toString() +  "]的文件");
+                    } catch (JMSException e) {
+                        e.printStackTrace();
+                    }
+                    long startTime = System.currentTimeMillis();
+                    try {
+                        String fileName = bytesMessage
+                                .getStringProperty("FILE.NAME");
+                        System.out.println("文件名：" + fileName);
+                        System.out.println("文件接收请求处理：" + fileName + "，文件大小："
+                                + bytesMessage.getBodyLength()
+                                + " 字节");
+
+                        JFileChooser fileChooser = new JFileChooser();
+                        fileChooser.setDialogTitle("请指定文件保存位置");
+                        fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                        if (fileChooser.showSaveDialog(null) != JFileChooser.APPROVE_OPTION)
+                            return;
+
+
+                        File file = fileChooser.getSelectedFile();
+                        File nfile = new File(file.getPath() + "\\" + fileName);
+
+                        OutputStream os = new FileOutputStream(nfile);
+                        System.out.println("开始接收文件：" + fileName);
+
+
+                        byte[] buff = new byte[256];
+                        int len = 0;
+                        while ((len = bytesMessage.readBytes(buff)) > 0) {
+                            os.write(buff, 0, len);
+                        }
+                        //获得回执地址
+                        Destination recall_destination = message.getJMSReplyTo();
+                        // 创建回执消息
+                        TextMessage textMessage = finalSession.createTextMessage(" [" + appName + "] 已接收文件：" + fileName);
+                        // 以上收到消息之后，从新创建生产者，然后在回执过去
+                        MessageProducer producer = finalSession.createProducer(recall_destination);
+                        producer.send(textMessage);
+                        os.close();
+                        System.out.println("完成文件接收：" + fileName);
+
+                    } catch (IOException | JMSException e) {
+                        System.out.println("传输失败！");
+                    }
                 }
             }
         });
@@ -87,7 +141,6 @@ public class Application {
         topicMessageConsumer.setMessageListener(new MessageListener(){
             public void onMessage(Message message) {
 
-                System.out.println("接收群发");
                 if(message instanceof TextMessage) {
                     System.out.print(">>[all]");
                     TextMessage Tmessage=(TextMessage) message;
@@ -96,8 +149,12 @@ public class Application {
                     } catch (Exception e) {
                     }
                 } else if(message instanceof BytesMessage) {
-                    System.out.println("监听到文件信息");
                     BytesMessage bytesMessage = (BytesMessage) message;
+                    try {
+                        System.out.println("收到来自[" + message.getJMSDestination().toString() +  "]的群发文件");
+                    } catch (JMSException e) {
+                        e.printStackTrace();
+                    }
                     long startTime=System.currentTimeMillis();
                     try {
                         String fileName = bytesMessage
