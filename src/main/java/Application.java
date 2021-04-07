@@ -69,7 +69,6 @@ public class Application {
         Session finalSession = session;
         messageConsumer.setMessageListener(new MessageListener(){
             public void onMessage(Message message) {
-                //System.out.println("接收群发");
                 System.out.print(">>");
 
                 if(message instanceof TextMessage) {
@@ -77,6 +76,10 @@ public class Application {
                     TextMessage Tmessage=(TextMessage) message;
                     try {
                         System.out.println(Tmessage.getText());
+                        String now =  "[转发自 + " + appName + " ]" + Tmessage.getText();
+                        String des = JOptionPane.showInputDialog("输入转发对象：");
+                        sendMessage(des, now);
+                        System.out.println("转发成功");
                     } catch (Exception e) {
                     }
                 } else if(message instanceof BytesMessage) {
