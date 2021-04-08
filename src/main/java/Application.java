@@ -12,12 +12,17 @@ import java.util.concurrent.Executors;
 
 import org.apache.activemq.*;
 
+
 public class Application {
     public static final String BROKER_URL = "tcp://127.0.0.1:61616";
     public static Scanner scanner = new Scanner(System.in);
     public static String appName;
+    GT g = GT.getInstance();
     //相当于一个数据库（其实是一个队列）
-    public static void main(String[] args) throws JMSException, IOException {
+
+
+
+    public static void main(String[] args) throws Exception {
 
         System.out.println("请输入本地名称：");
         appName=scanner.nextLine();
@@ -30,8 +35,8 @@ public class Application {
             System.out.println("请输入目的地：\n(群发为\"all\")");
             dst = scanner.nextLine();
             System.out.println("请输入信息类型\n" +
-                                "(1:text)\n"+
-                                "(2:transport file)");
+                    "(1:text)\n"+
+                    "(2:transport file)");
             type=scanner.nextInt();
             scanner.nextLine();
             switch (type) {
@@ -75,7 +80,9 @@ public class Application {
 
                     TextMessage Tmessage=(TextMessage) message;
                     try {
+                        String msg = Tmessage.getText();
                         System.out.println(Tmessage.getText());
+                        System.out.println("[中文翻译]：" + g.translateText(msg, "auto","zh_cn"));
                         String now =  "[转发自 + " + appName + " ]" + Tmessage.getText();
                         String des = JOptionPane.showInputDialog("输入转发对象：");
                         sendMessage(des, now);
